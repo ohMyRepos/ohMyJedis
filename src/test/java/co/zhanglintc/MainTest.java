@@ -1,12 +1,11 @@
 package co.zhanglintc;
 
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.args.ListPosition;
 
 import java.util.List;
+import java.util.Set;
 
 public class MainTest {
 
@@ -16,7 +15,6 @@ public class MainTest {
     @BeforeClass
     public static void beforeClass() {
         jedis = new Jedis(REDIS_HOST, 6379);
-        jedis.flushDB();
     }
 
     @AfterClass
@@ -24,8 +22,16 @@ public class MainTest {
         jedis.close();
     }
 
+    @Before
+    public void before() {
+        jedis.flushDB();
+    }
+
     @Test
     public void testString() throws InterruptedException {
+        Set<String> keys = jedis.keys("*");
+        Assert.assertEquals(0, keys.size());
+
         String kInt = "kInt";
         jedis.set(kInt, "1");
         jedis.incr(kInt);
@@ -81,5 +87,44 @@ public class MainTest {
         Assert.assertEquals(null, kGetSetV);
         kGetSetV = jedis.get(kGetSet);
         Assert.assertEquals("1", kGetSetV);
+    }
+
+    @Test
+    public void testList() {
+        jedis.rpush("list", "1", "2", "3");
+        long listLen = jedis.llen("list");
+        Assert.assertEquals(3, listLen);
+
+        jedis.rpush("list", "4", "5", "6");
+        List<String> listAll = jedis.lrange("list", 0, -1);
+        Assert.assertEquals(6, listAll.size());
+        for (int i = 0; i < listAll.size(); i++) {
+            Assert.assertEquals(String.valueOf(i + 1), listAll.get(i));
+        }
+
+        String byIndex = jedis.lindex("list", 0);
+        Assert.assertEquals("1", byIndex);
+
+        jedis.lpush("list", "0", "0", "0", "0", "0");
+        Assert.assertEquals(11, jedis.llen("list"));
+        jedis.lrem("list", 1, "0");
+        Assert.assertEquals(10, jedis.llen("list"));
+        jedis.lrem("list", 0, "0");
+        Assert.assertEquals(6, jedis.llen("list"));
+
+        jedis.ltrim("list", 0, 2);
+        Assert.assertEquals(3, jedis.llen("list"));
+        Assert.assertEquals("1", jedis.lindex("list", 0));
+        Assert.assertEquals("3", jedis.lindex("list", -1));
+
+        jedis.lset("list", 0, "0");
+        Assert.assertEquals("0", jedis.lindex("list", 0));
+        Assert.assertThrows(
+                redis.clients.jedis.exceptions.JedisDataException.class,
+                () -> jedis.lset("list-1", 0, "0")
+        );
+
+        jedis.linsert("list", ListPosition.BEFORE, "0", "999");
+        Assert.assertEquals("999", jedis.lindex("list", 0));
     }
 }

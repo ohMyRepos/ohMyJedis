@@ -4,6 +4,7 @@ import org.junit.*;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.args.ListPosition;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -83,7 +84,7 @@ public class MainTest {
         }
 
         String kGetSet = "kGetSet";
-        String kGetSetV =jedis.getSet(kGetSet, "1");
+        String kGetSetV = jedis.getSet(kGetSet, "1");
         Assert.assertEquals(null, kGetSetV);
         kGetSetV = jedis.get(kGetSet);
         Assert.assertEquals("1", kGetSetV);
@@ -126,5 +127,49 @@ public class MainTest {
 
         jedis.linsert("list", ListPosition.BEFORE, "0", "999");
         Assert.assertEquals("999", jedis.lindex("list", 0));
+    }
+
+    @Test
+    public void testSet() {
+        jedis.sadd("set", "1", "2", "3");
+        Assert.assertEquals(3, jedis.scard("set"));
+
+        Set<String> setMembers = jedis.smembers("set");
+        Assert.assertEquals("[1, 2, 3]", setMembers.toString());
+
+        jedis.sadd("set", "hello");
+        setMembers = jedis.smembers("set");
+        Assert.assertTrue(setMembers.contains("hello"));
+        jedis.srem("set", "hello");
+        setMembers = jedis.smembers("set");
+        Assert.assertFalse(setMembers.contains("hello"));
+
+        List<String> randomMembers = new LinkedList<>();
+        for (int i = 0; i < 10; i++) {
+            List<String> list_len_2 = jedis.srandmember("set", 3);
+            for (String s : list_len_2) {
+                randomMembers.add(s);
+            }
+        }
+        Assert.assertEquals(30, randomMembers.size());
+
+        Assert.assertNotNull(jedis.spop("set"));
+        Assert.assertNotNull(jedis.spop("set"));
+        Assert.assertNotNull(jedis.spop("set"));
+        Assert.assertNull(jedis.spop("set"));
+
+        jedis.sadd("set1", "1", "2", "3");
+        jedis.sadd("set2", "3", "4", "5");
+
+        Assert.assertEquals("[1, 2]", jedis.sdiff("set1", "set2").toString());
+        Assert.assertEquals("[4, 5]", jedis.sdiff("set2", "set1").toString());
+        Assert.assertEquals("[3]", jedis.sinter("set1", "set2").toString());
+        Assert.assertEquals("[3]", jedis.sinter("set2", "set1").toString());
+        Assert.assertEquals("[1, 2, 3, 4, 5]", jedis.sunion("set1", "set2").toString());
+        Assert.assertEquals("[1, 2, 3, 4, 5]", jedis.sunion("set2", "set1").toString());
+
+        jedis.sadd("set-set", "1", "2", "3", "4", "5");
+        jedis.sadd("set-set", "4", "5", "6", "7", "8");
+        Assert.assertEquals("[1, 2, 3, 4, 5, 6, 7, 8]", jedis.sunion("set-set").toString());
     }
 }

@@ -26,7 +26,7 @@ public class MainTest {
 
     @Before
     public void before() {
-        jedis.flushDB();
+        jedis.flushAll();
     }
 
     @Test

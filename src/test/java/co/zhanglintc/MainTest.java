@@ -6,6 +6,7 @@ import redis.clients.jedis.args.ListPosition;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class MainTest {
@@ -171,5 +172,25 @@ public class MainTest {
         jedis.sadd("set-set", "1", "2", "3", "4", "5");
         jedis.sadd("set-set", "4", "5", "6", "7", "8");
         Assert.assertEquals("[1, 2, 3, 4, 5, 6, 7, 8]", jedis.sunion("set-set").toString());
+    }
+
+    @Test
+    public void testHash() {
+        jedis.hset("hash", "k1", "v1");
+        jedis.hset("hash", "k2", "v2");
+        jedis.hset("hash", "k3", "v3");
+        Map<String, String> hashGet = jedis.hgetAll("hash");
+        Assert.assertEquals(3, hashGet.size());
+
+        jedis.hmset("hash-hmset", hashGet);
+        hashGet = jedis.hgetAll("hash-hmset");
+        Assert.assertEquals(3, hashGet.size());
+
+        Assert.assertTrue(jedis.hexists("hash", "k1"));
+        Assert.assertFalse(jedis.hexists("hash", "k4"));
+        Assert.assertFalse(jedis.hexists("hash-what", "k1"));
+
+        Assert.assertEquals(0, jedis.hsetnx("hash", "k1", "v11"));
+        Assert.assertEquals(1, jedis.hsetnx("hash", "k4", "v4"));
     }
 }

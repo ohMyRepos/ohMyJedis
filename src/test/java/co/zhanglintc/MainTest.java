@@ -193,4 +193,25 @@ public class MainTest {
         Assert.assertEquals(0, jedis.hsetnx("hash", "k1", "v11"));
         Assert.assertEquals(1, jedis.hsetnx("hash", "k4", "v4"));
     }
+
+    @Test
+    public void testZSet() {
+        jedis.zadd("zset", 1, "a");
+        jedis.zadd("zset", 2, "b");
+        jedis.zadd("zset", 3, "c");
+        jedis.zadd("zset", 4, "d");
+        jedis.zadd("zset", 5, "e");
+        List<String> zSet = jedis.zrange("zset", 0, -1);
+        Assert.assertEquals("[a, b, c, d, e]", zSet.toString());
+
+        zSet = jedis.zrangeByScore("zset", 1, 3);
+        Assert.assertEquals("[a, b, c]", zSet.toString());
+        zSet = jedis.zrevrangeByScore("zset", 3, 1);
+        Assert.assertEquals("[c, b, a]", zSet.toString());
+        zSet = jedis.zrangeByScore("zset", 4, Double.POSITIVE_INFINITY);
+        Assert.assertEquals("[d, e]", zSet.toString());
+
+        Assert.assertEquals(5, jedis.zcard("zset"));
+        Assert.assertEquals(5, jedis.zcount("zset", Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
+    }
 }
